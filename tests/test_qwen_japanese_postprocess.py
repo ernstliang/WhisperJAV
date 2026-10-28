@@ -291,7 +291,7 @@ def test_qwen_asr_initialization():
 
     # Test default parameters (should have japanese_postprocess=True)
     asr = QwenASR(
-        model_id="Qwen/Qwen3-ASR-1.7B",
+        model_id="Qwen/Qwen3-ASR-1.7B-hf",
         device="cpu",  # Use CPU for initialization test to avoid VRAM
         japanese_postprocess=True,
         postprocess_preset="default",
@@ -303,7 +303,7 @@ def test_qwen_asr_initialization():
 
     # Test with disabled post-processing
     asr_disabled = QwenASR(
-        model_id="Qwen/Qwen3-ASR-1.7B",
+        model_id="Qwen/Qwen3-ASR-1.7B-hf",
         device="cpu",
         japanese_postprocess=False,
         postprocess_preset="default",
@@ -314,7 +314,7 @@ def test_qwen_asr_initialization():
 
     # Test with different presets
     asr_highmoan = QwenASR(
-        model_id="Qwen/Qwen3-ASR-1.7B",
+        model_id="Qwen/Qwen3-ASR-1.7B-hf",
         device="cpu",
         japanese_postprocess=True,
         postprocess_preset="high_moan",
@@ -323,7 +323,7 @@ def test_qwen_asr_initialization():
     print("[PASS] QwenASR with postprocess_preset='high_moan'")
 
     asr_narrative = QwenASR(
-        model_id="Qwen/Qwen3-ASR-1.7B",
+        model_id="Qwen/Qwen3-ASR-1.7B-hf",
         device="cpu",
         japanese_postprocess=True,
         postprocess_preset="narrative",
@@ -833,7 +833,7 @@ def test_full_pipeline_integration():
         # Test with post-processing ENABLED
         print("\n--- Testing WITH Japanese post-processing ---")
         asr_enabled = QwenASR(
-            model_id="Qwen/Qwen3-ASR-1.7B",
+            model_id="Qwen/Qwen3-ASR-1.7B-hf",
             device="auto",
             japanese_postprocess=True,
             postprocess_preset="default",
@@ -857,7 +857,7 @@ def test_full_pipeline_integration():
         # Test with post-processing DISABLED
         print("\n--- Testing WITHOUT Japanese post-processing ---")
         asr_disabled = QwenASR(
-            model_id="Qwen/Qwen3-ASR-1.7B",
+            model_id="Qwen/Qwen3-ASR-1.7B-hf",
             device="auto",
             japanese_postprocess=False,
         )

@@ -42,7 +42,7 @@ def test_qwen_real_transcription():
     # Initialize QwenASR
     print("\nInitializing QwenASR...")
     asr = QwenASR(
-        model_id="Qwen/Qwen3-ASR-1.7B",
+        model_id="Qwen/Qwen3-ASR-1.7B-hf",
         device="auto",
         dtype="auto",
         timestamps="word",  # Use ForcedAligner
@@ -126,7 +126,7 @@ def test_qwen_longer_audio():
     print(f"Audio file: {audio_file.name}")
 
     asr = QwenASR(
-        model_id="Qwen/Qwen3-ASR-1.7B",
+        model_id="Qwen/Qwen3-ASR-1.7B-hf",
         device="auto",
         timestamps="word",
     )

@@ -38,7 +38,7 @@ class Qwen3TextGenerator:
 
     def __init__(
         self,
-        model_id: str = "Qwen/Qwen3-ASR-1.7B",
+        model_id: str = "Qwen/Qwen3-ASR-1.7B-hf",
         device: str = "auto",
         dtype: str = "auto",
         batch_size: int = 1,

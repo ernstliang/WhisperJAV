@@ -127,14 +127,14 @@ class QwenPipeline(BasePipeline):
         segmenter_config: Optional[Dict[str, Any]] = None,  # GUI/CLI custom segmenter params
 
         # Qwen ASR (Phase 5)
-        model_id: str = "Qwen/Qwen3-ASR-1.7B",
+        model_id: str = "Qwen/Qwen3-ASR-1.7B-hf",
         device: str = "auto",
         dtype: str = "auto",
         batch_size: int = 1,
         max_new_tokens: int = 4096,
         language: str = "Japanese",
         timestamps: str = "word",
-        aligner_id: str = "Qwen/Qwen3-ForcedAligner-0.6B",
+        aligner_id: str = "Qwen/Qwen3-ForcedAligner-0.6B-hf",
         context: str = "",
         context_file: Optional[str] = None,
         attn_implementation: str = "auto",

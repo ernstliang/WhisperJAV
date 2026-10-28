@@ -831,15 +831,12 @@ PACKAGES: List[Package] = [
     ),
     Package(
         name="transformers",
-        version=">=4.40.0,<5.0",
+        version=">=5.13",
         extra=Extra.HUGGINGFACE,
         order=81,
         reason=(
-            "HuggingFace Transformers for ASR pipeline (kotoba-whisper). "
-            "Upper bound <5.0 added in v1.8.14: transformers 5.x breaks the "
-            "Qwen3-ASR fork (@check_model_inputs() decorator API change at "
-            "modeling_qwen3_asr.py:986). Pin removed in v1.9.0 once Qwen3-ASR "
-            "is patched and Cohere preview ships."
+            "HuggingFace Transformers for ASR pipeline (kotoba-whisper) and "
+            "native Qwen3-ASR (*-hf checkpoints, added in transformers 5.13)."
         ),
     ),
     Package(
@@ -860,21 +857,21 @@ PACKAGES: List[Package] = [
     # PHASE 5: Qwen3-ASR Packages (Order 84)
     # =========================================================================
     #
-    # WHY AFTER HUGGINGFACE:
-    # qwen-asr depends on transformers and torch. By installing after HuggingFace,
-    # we ensure the transformers backend is available.
-    #
-    # PACKAGE NAME vs IMPORT NAME:
-    # - pip install: qwen-asr (with hyphen)
-    # - import: qwen_asr (with underscore)
+    # Qwen3-ASR itself runs on native transformers (>=5.13, HUGGINGFACE extra).
+    # The ForcedAligner's word splitter needs a language-specific tokenizer:
+    # nagisa for Japanese, soynlp for Korean.
     #
     Package(
-        name="qwen-asr",
-        version=">=0.0.6",
+        name="nagisa",
         extra=Extra.QWEN,
         order=84,
-        import_name="qwen_asr",  # pip name (qwen-asr) != import name (qwen_asr)
-        reason="Qwen3-ASR transformers backend for multilingual ASR with ForcedAligner",
+        reason="Japanese word segmentation for Qwen3-ForcedAligner",
+    ),
+    Package(
+        name="soynlp",
+        extra=Extra.QWEN,
+        order=84,
+        reason="Korean word segmentation for Qwen3-ForcedAligner",
     ),
 
     # =========================================================================

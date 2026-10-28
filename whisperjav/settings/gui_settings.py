@@ -65,7 +65,7 @@ DEFAULT_GUI_SETTINGS = {
     "pass1_scene_detector": "semantic",
     "pass1_speech_enhancer": "none",
     "pass1_speech_segmenter": "firered-vad",
-    "pass1_model": "Qwen/Qwen3-ASR-1.7B",
+    "pass1_model": "Qwen/Qwen3-ASR-1.7B-hf",
     "pass2_enabled": False,
     "pass2_pipeline": "anime-whisper",
     "pass2_sensitivity": "aggressive",

@@ -367,14 +367,14 @@ def prepare_transformers_params(pass_config: Dict[str, Any]) -> Dict[str, Any]:
 
 # Default Qwen3-ASR parameters
 DEFAULT_QWEN_PARAMS = {
-    "qwen_model_id": "Qwen/Qwen3-ASR-1.7B",
+    "qwen_model_id": "Qwen/Qwen3-ASR-1.7B-hf",
     "qwen_device": "auto",
     "qwen_dtype": "auto",
     "qwen_batch_size": 1,
     "qwen_max_tokens": 4096,
     "qwen_language": "Japanese",  # WhisperJAV is purpose-built for Japanese
     "qwen_timestamps": "word",
-    "qwen_aligner": "Qwen/Qwen3-ForcedAligner-0.6B",
+    "qwen_aligner": "Qwen/Qwen3-ForcedAligner-0.6B-hf",
     "qwen_scene": "semantic",
     "qwen_context": "",
     "qwen_context_file": None,
@@ -1243,14 +1243,14 @@ def _build_pipeline(
 
         # Map qwen_* prefixed params to QwenPipeline's parameter names
         qwen_pipeline_params = {
-            "model_id": qwen_defaults.get("qwen_model_id", "Qwen/Qwen3-ASR-1.7B"),
+            "model_id": qwen_defaults.get("qwen_model_id", "Qwen/Qwen3-ASR-1.7B-hf"),
             "device": qwen_defaults.get("qwen_device", "auto"),
             "dtype": qwen_defaults.get("qwen_dtype", "auto"),
             "batch_size": qwen_defaults.get("qwen_batch_size", 1),
             "max_new_tokens": qwen_defaults.get("qwen_max_tokens", 4096),
             "language": (lambda _l: None if _l in (None, "null", "") else _l)(qwen_defaults.get("qwen_language", "Japanese")),
             "timestamps": qwen_defaults.get("qwen_timestamps", "word"),
-            "aligner_id": qwen_defaults.get("qwen_aligner", "Qwen/Qwen3-ForcedAligner-0.6B"),
+            "aligner_id": qwen_defaults.get("qwen_aligner", "Qwen/Qwen3-ForcedAligner-0.6B-hf"),
             "scene_detector": qwen_defaults.get("qwen_scene", "none"),
             "context": qwen_defaults.get("qwen_context", ""),
             "context_file": qwen_defaults.get("qwen_context_file", None),

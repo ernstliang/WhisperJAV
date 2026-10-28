@@ -823,8 +823,8 @@ def parse_arguments():
                            help="Text generator backend (default: qwen3). "
                                 "anime-whisper uses litagin/anime-whisper for anime/VN dialogue")
     qwen_model_group.add_argument("--qwen-model-id", type=str,
-                           default="Qwen/Qwen3-ASR-1.7B",
-                           help="Qwen3-ASR model ID (default: Qwen/Qwen3-ASR-1.7B)")
+                           default="Qwen/Qwen3-ASR-1.7B-hf",
+                           help="Qwen3-ASR model ID (default: Qwen/Qwen3-ASR-1.7B-hf)")
     qwen_model_group.add_argument("--qwen-device", type=str, default="auto",
                            choices=["auto", "cuda", "cpu"],
                            help="Device to use (default: auto)")
@@ -953,8 +953,8 @@ def parse_arguments():
                            help="Timestamp granularity: 'word' (ForcedAligner) or 'none' (default: word). "
                                 "Only used by aligner modes — inert under the vad_only default.")
     qwen_align_group.add_argument("--qwen-aligner", type=str,
-                           default="Qwen/Qwen3-ForcedAligner-0.6B",
-                           help="ForcedAligner model ID (default: Qwen/Qwen3-ForcedAligner-0.6B). "
+                           default="Qwen/Qwen3-ForcedAligner-0.6B-hf",
+                           help="ForcedAligner model ID (default: Qwen/Qwen3-ForcedAligner-0.6B-hf). "
                                 "Only loaded by aligner modes — inert under the vad_only default.")
     qwen_align_group.add_argument("--qwen-assembly-cleaner", dest="qwen_assembly_cleaner",
                            action="store_true", default=True,
@@ -1614,14 +1614,14 @@ def process_files_sync(media_files: List[Dict], args: argparse.Namespace, resolv
             # Generator backend selection (v1.8.6+)
             "generator_backend": getattr(args, 'qwen_generator', 'qwen3'),
             # Qwen ASR
-            "model_id": getattr(args, 'qwen_model_id', 'Qwen/Qwen3-ASR-1.7B'),
+            "model_id": getattr(args, 'qwen_model_id', 'Qwen/Qwen3-ASR-1.7B-hf'),
             "device": getattr(args, 'qwen_device', 'auto'),
             "dtype": getattr(args, 'qwen_dtype', 'auto'),
             "batch_size": getattr(args, 'qwen_batch_size', 1),
             "max_new_tokens": getattr(args, 'qwen_max_tokens', 4096),
             "language": (lambda _l: None if _l in (None, "auto", "") else _l)(getattr(args, 'qwen_language', 'Japanese')),
             "timestamps": getattr(args, 'qwen_timestamps', 'word'),
-            "aligner_id": getattr(args, 'qwen_aligner', 'Qwen/Qwen3-ForcedAligner-0.6B'),
+            "aligner_id": getattr(args, 'qwen_aligner', 'Qwen/Qwen3-ForcedAligner-0.6B-hf'),
             "context": getattr(args, 'qwen_context', ''),
             "context_file": getattr(args, 'qwen_context_file', None),
             "attn_implementation": getattr(args, 'qwen_attn', 'auto'),

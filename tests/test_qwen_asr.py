@@ -104,12 +104,11 @@ class MockQwen3ASRModel:
 
 @pytest.fixture
 def mock_qwen_asr_module():
-    """Create a mock qwen_asr module and patch it into sys.modules."""
-    mock_module = MagicMock()
-    mock_module.Qwen3ASRModel = MockQwen3ASRModel
+    """Patch the native transformers backend's Qwen3ASRModel with a mock."""
+    import whisperjav.modules.qwen3_hf_backend as backend
 
-    with patch.dict(sys.modules, {'qwen_asr': mock_module}):
-        yield mock_module
+    with patch.object(backend, 'Qwen3ASRModel', MockQwen3ASRModel):
+        yield backend
 
 
 @pytest.fixture
@@ -162,7 +161,7 @@ class TestQwenASRInitialization:
 
         asr = QwenASR()
 
-        assert asr.model_id == "Qwen/Qwen3-ASR-1.7B"
+        assert asr.model_id == "Qwen/Qwen3-ASR-1.7B-hf"
         assert asr.device_request == "auto"
         assert asr.dtype_request == "auto"
         assert asr.batch_size == 1  # Default batch_size=1 for accuracy
@@ -171,7 +170,7 @@ class TestQwenASRInitialization:
         assert asr.task == "transcribe"
         assert asr.timestamps == "word"
         assert asr.use_aligner is True
-        assert asr.aligner_id == "Qwen/Qwen3-ForcedAligner-0.6B"
+        assert asr.aligner_id == "Qwen/Qwen3-ForcedAligner-0.6B-hf"
         assert asr.context == ""  # Default empty context
         assert asr.attn_implementation == "auto"  # Default auto attention
         assert asr.model is None  # Lazy loading
@@ -181,7 +180,7 @@ class TestQwenASRInitialization:
         from whisperjav.modules.qwen_asr import QwenASR
 
         asr = QwenASR(
-            model_id="Qwen/Qwen3-ASR-0.6B",
+            model_id="Qwen/Qwen3-ASR-0.6B-hf",
             device="cuda:1",
             dtype="float16",
             batch_size=16,
@@ -193,7 +192,7 @@ class TestQwenASRInitialization:
             attn_implementation="flash_attention_2",
         )
 
-        assert asr.model_id == "Qwen/Qwen3-ASR-0.6B"
+        assert asr.model_id == "Qwen/Qwen3-ASR-0.6B-hf"
         assert asr.device_request == "cuda:1"
         assert asr.dtype_request == "float16"
         assert asr.batch_size == 16
@@ -389,7 +388,7 @@ class TestQwenASRRepr:
         repr_str = repr(asr)
 
         assert "QwenASR" in repr_str
-        assert "Qwen/Qwen3-ASR-1.7B" in repr_str
+        assert "Qwen/Qwen3-ASR-1.7B-hf" in repr_str
         assert "use_aligner=True" in repr_str
 
 

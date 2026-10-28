@@ -33,7 +33,7 @@ provider: qwen
 # =============================================================================
 spec:
   # --- Model Loading ---
-  model.id: "Qwen/Qwen3-ASR-1.7B"
+  model.id: "Qwen/Qwen3-ASR-1.7B-hf"
   model.device: auto
   model.dtype: bfloat16
   model.max_inference_batch_size: 1  # batch_size=1 for accuracy
@@ -48,7 +48,7 @@ spec:
 
   # --- ForcedAligner ---
   aligner.enabled: true
-  aligner.id: "Qwen/Qwen3-ForcedAligner-0.6B"
+  aligner.id: "Qwen/Qwen3-ForcedAligner-0.6B-hf"
 
   # --- Architectural Limits (from qwen-asr) ---
   # ForcedAligner: 180 sec max per chunk (internally chunked if longer)

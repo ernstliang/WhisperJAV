@@ -42,7 +42,7 @@ class Qwen3ForcedAlignerAdapter:
 
     def __init__(
         self,
-        aligner_id: str = "Qwen/Qwen3-ForcedAligner-0.6B",
+        aligner_id: str = "Qwen/Qwen3-ForcedAligner-0.6B-hf",
         device: str = "auto",
         dtype: str = "auto",
         language: str = "Japanese",

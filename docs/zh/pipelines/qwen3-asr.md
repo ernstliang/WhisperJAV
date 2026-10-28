@@ -8,8 +8,11 @@ Qwen3-ASR 是一个基于阿里巴巴 Qwen 架构的替代语音识别引擎，�
 
 | 模型 | 大小 | 备注 |
 |------|------|------|
-| **Qwen3-ASR 1.7B** | ~4 GB | 完整模型，最佳质量 |
-| **Qwen3-ASR 0.6B** | ~2 GB | 更小、更快，质量略低 |
+| **Qwen3-ASR 1.7B**（`Qwen/Qwen3-ASR-1.7B-hf`） | ~4 GB | 完整模型，最佳质量 |
+| **Qwen3-ASR 0.6B**（`Qwen/Qwen3-ASR-0.6B-hf`） | ~2 GB | 更小、更快，质量略低 |
+| **Qwen3-ForcedAligner 0.6B**（`Qwen/Qwen3-ForcedAligner-0.6B-hf`） | ~1.2 GB | 逐词时间戳 |
+
+WhisperJAV 使用 transformers 原生实现运行 `-hf` 版本模型。不带 `-hf` 的旧仓库 ID（qwen-asr 格式）会自动映射到对应的 `-hf` 版本。
 
 ---
 
@@ -28,6 +31,12 @@ Qwen3-ASR 是一个基于阿里巴巴 Qwen 架构的替代语音识别引擎，�
 whisperjav video.mp4 --mode qwen
 ```
 
+也可以直接使用本地模型目录：
+
+```bash
+whisperjav video.mp4 --mode qwen   --qwen-model-id D:/models/Qwen3-ASR-1.7B-hf   --qwen-aligner D:/models/Qwen3-ForcedAligner-0.6B-hf
+```
+
 ### 作为集成模式的 Pass 2
 
 Qwen3-ASR 与基于 Whisper 的处理管线配合良好：
@@ -40,8 +49,9 @@ Qwen3-ASR 与基于 Whisper 的处理管线配合良好：
 
 ## 系统要求
 
-- 必须安装 **HuggingFace 扩展**：`pip install whisperjav[huggingface]`
-- 需要 `transformers` 和 `accelerate` 包
+- 必须安装 **Qwen 扩展**：`pip install whisperjav[qwen]`
+- 需要 `transformers>=5.13`（原生支持 Qwen3-ASR），不再使用 `qwen-asr` 包
+- 日语对齐使用 `nagisa`，韩语使用 `soynlp`（均包含在 qwen 扩展中）
 - 首次运行时会从 HuggingFace 下载模型
 
 ---

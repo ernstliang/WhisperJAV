@@ -265,7 +265,7 @@ const QwenManager = {
 
     defaults: {
         // Model
-        model_id: 'Qwen/Qwen3-ASR-1.7B',
+        model_id: 'Qwen/Qwen3-ASR-1.7B-hf',
         language: null,  // null = auto-detect
         context: '',
         device: 'auto',
@@ -294,7 +294,7 @@ const QwenManager = {
         // v1.9.0: vad_only is the default — the ForcedAligner is not loaded.
         // aligner_backend/aligner_id only apply when an aligner mode is chosen.
         aligner_backend: 'qwen3',
-        aligner_id: 'Qwen/Qwen3-ForcedAligner-0.6B',
+        aligner_id: 'Qwen/Qwen3-ForcedAligner-0.6B-hf',
         assembly_cleaner: 'qwen3',
         timestamp_mode: 'vad_only',
         stepdown: true,
@@ -1331,7 +1331,7 @@ const EnsembleManager = {
             vadVersion: '4.0',  // v1.9.2: which Silero build the BUILT-IN VAD runs (balanced only).
                                 // Keep in step with defaultVadVersion below and with
                                 // DEFAULT_VAD_VERSION in modules/silero_vad_adapter.py.
-            model: 'Qwen/Qwen3-ASR-1.7B',
+            model: 'Qwen/Qwen3-ASR-1.7B-hf',
             customized: false,
             params: null,  // null = use defaults, object = full custom config
             presetName: null,  // Name of loaded preset, or null if none
@@ -1400,14 +1400,13 @@ const EnsembleManager = {
         { value: 'openai/whisper-large-v2', label: 'Whisper Large v2' }
     ],
     qwenModels: [
-        { value: 'Qwen/Qwen3-ASR-1.7B', label: 'Qwen3-ASR-1.7B    8GB' },
-        { value: 'Qwen/Qwen3-ASR-0.6B', label: 'Qwen3-ASR-0.6B    4GB' },
+        { value: 'Qwen/Qwen3-ASR-1.7B-hf', label: 'Qwen3-ASR-1.7B    8GB' },
+        { value: 'Qwen/Qwen3-ASR-0.6B-hf', label: 'Qwen3-ASR-0.6B    4GB' },
         // v1.9.0 (R6.4): full SFT on litagin galgame speech corpus. Published
         // CER 0.1437→0.1285 vs base (anime speech −26.8% rel.); owner-tested.
-        { value: 'jaykwok/Qwen3-ASR-1.7B-JA-Anime-Galgame', label: 'JA Anime-Galgame 1.7B    8GB' },
-        // v1.9.0 (R6.1): JA finetune focused on proper nouns / kanji-heavy
-        // expressions; owner-tested.
-        { value: 'neosophie/Qwen3-ASR-1.7B-JA', label: 'JA-tuned 1.7B (neosophie)    8GB' }
+        { value: 'jaykwok/Qwen3-ASR-1.7B-JA-Anime-Galgame-hf', label: 'JA Anime-Galgame 1.7B    8GB' }
+        // neosophie/Qwen3-ASR-1.7B-JA removed: no -hf checkpoint exists, and the
+        // native transformers backend cannot load the qwen-asr format.
     ],
     animeWhisperModels: [
         { value: 'litagin/anime-whisper', label: 'anime-whisper    ~4GB' },

@@ -2,7 +2,8 @@
 """
 Qwen3-ASR Module for WhisperJAV.
 
-Uses the qwen-asr package with transformers backend for automatic speech recognition.
+Uses native transformers Qwen3-ASR (``*-hf`` checkpoints, see qwen3_hf_backend.py)
+for automatic speech recognition.
 Supports optional ForcedAligner for word-level timestamps, which are then regrouped
 into sentence-level segments using stable-ts for proper subtitle generation.
 
@@ -205,16 +206,16 @@ class QwenASR:
           ```python
           # Not exposed in WhisperJAV CLI (use Python API if needed)
           model = Qwen3ASRModel.from_pretrained(
-              "Qwen/Qwen3-ASR-1.7B",
-              forced_aligner="Qwen/Qwen3-ForcedAligner-0.6B",
+              "Qwen/Qwen3-ASR-1.7B-hf",
+              forced_aligner="Qwen/Qwen3-ForcedAligner-0.6B-hf",
               forced_aligner_kwargs=dict(dtype=torch.float16, device_map="cuda:1"),
           )
           ```
     """
 
     # Default model IDs
-    DEFAULT_MODEL_ID = "Qwen/Qwen3-ASR-1.7B"
-    DEFAULT_ALIGNER_ID = "Qwen/Qwen3-ForcedAligner-0.6B"
+    DEFAULT_MODEL_ID = "Qwen/Qwen3-ASR-1.7B-hf"
+    DEFAULT_ALIGNER_ID = "Qwen/Qwen3-ForcedAligner-0.6B-hf"
 
     # Default processing parameters
     # NOTE: batch_size=1 produces more accurate transcriptions than larger batches
@@ -257,7 +258,7 @@ class QwenASR:
         Initialize QwenASR.
 
         Args:
-            model_id: HuggingFace model ID (default: Qwen/Qwen3-ASR-1.7B)
+            model_id: HuggingFace model ID (default: Qwen/Qwen3-ASR-1.7B-hf)
             device: Device to use ('auto', 'cuda', 'cuda:0', 'cpu')
             dtype: Data type ('auto', 'float16', 'bfloat16', 'float32')
             batch_size: Maximum inference batch size
@@ -393,36 +394,33 @@ class QwenASR:
 
     def _apply_generation_config(self) -> None:
         """
-        Apply generation safety controls to the thinker's HF GenerationConfig.
+        Apply generation safety controls to the model's HF GenerationConfig.
 
-        Sets repetition_penalty on the underlying thinker model's generation_config
-        after model load. This is the standard HuggingFace mechanism — the outer
-        generate() call reads from generation_config when no explicit kwarg is passed.
+        Sets repetition_penalty on the generation_config after model load. This
+        is the standard HuggingFace mechanism — generate() reads from
+        generation_config when no explicit kwarg is passed.
 
-        Access chain (verified):
-            self.model.model.thinker.generation_config
-            - self.model → Qwen3ASRModel
-            - .model → Qwen3ASRForConditionalGeneration (HF model)
-            - .thinker → Qwen3ASRThinkerForConditionalGeneration (GenerationMixin)
-            - .generation_config → HF GenerationConfig
+        Access chain:
+            self.model.generation_config
+            - self.model → qwen3_hf_backend.Qwen3ASRModel
+            - .generation_config → Qwen3ASRForConditionalGeneration.generation_config
 
-        Wrapped in try/except: if qwen-asr restructures internals, we log a
-        warning instead of crashing. The penalty is a quality improvement, not
+        Wrapped in try/except: the penalty is a quality improvement, not
         a correctness requirement.
         """
         if self.repetition_penalty == 1.0:
             return  # 1.0 = no penalty, nothing to set
 
         try:
-            gen_config = self.model.model.thinker.generation_config
+            gen_config = self.model.generation_config
             gen_config.repetition_penalty = self.repetition_penalty
             logger.info(
-                "  Generation safety: repetition_penalty=%.2f applied to thinker",
+                "  Generation safety: repetition_penalty=%.2f applied",
                 self.repetition_penalty,
             )
         except AttributeError as e:
             logger.warning(
-                "Could not apply repetition_penalty — qwen-asr model structure "
+                "Could not apply repetition_penalty — Qwen3-ASR model structure "
                 "may have changed: %s. Generation will proceed without penalty.",
                 e,
             )
@@ -594,7 +592,7 @@ class QwenASR:
         start_time = time.time()
 
         try:
-            from qwen_asr import Qwen3ASRModel
+            from whisperjav.modules.qwen3_hf_backend import Qwen3ASRModel
 
             # Build model kwargs
             model_kwargs = {
@@ -637,12 +635,9 @@ class QwenASR:
             self._apply_generation_config()
 
         except ImportError as e:
-            logger.error(
-                "qwen-asr package not installed. Install with: pip install qwen-asr"
-            )
             raise ImportError(
-                "qwen-asr package required for QwenASR. "
-                "Install with: pip install qwen-asr"
+                "transformers>=5.13 required for QwenASR. "
+                "Install with: pip install 'whisperjav[qwen]'"
             ) from e
         except Exception as e:
             logger.error(
@@ -1132,7 +1127,7 @@ class QwenASR:
         start_time = time.time()
 
         try:
-            from qwen_asr import Qwen3ASRModel
+            from whisperjav.modules.qwen3_hf_backend import Qwen3ASRModel
 
             model_kwargs = {
                 "dtype": self._dtype,
@@ -1157,8 +1152,8 @@ class QwenASR:
 
         except ImportError as e:
             raise ImportError(
-                "qwen-asr package required for QwenASR. "
-                "Install with: pip install qwen-asr"
+                "transformers>=5.13 required for QwenASR. "
+                "Install with: pip install 'whisperjav[qwen]'"
             ) from e
 
     def load_aligner_only(self) -> None:
@@ -1194,7 +1189,7 @@ class QwenASR:
         start_time = time.time()
 
         try:
-            from qwen_asr.inference.qwen3_forced_aligner import Qwen3ForcedAligner
+            from whisperjav.modules.qwen3_hf_backend import Qwen3ForcedAligner
 
             self._standalone_aligner = Qwen3ForcedAligner.from_pretrained(
                 self.aligner_id,
@@ -1207,8 +1202,8 @@ class QwenASR:
 
         except ImportError as e:
             raise ImportError(
-                "qwen-asr package required for ForcedAligner. "
-                "Install with: pip install qwen-asr"
+                "transformers>=5.13 required for ForcedAligner. "
+                "Install with: pip install 'whisperjav[qwen]'"
             ) from e
 
     def transcribe_text_only(

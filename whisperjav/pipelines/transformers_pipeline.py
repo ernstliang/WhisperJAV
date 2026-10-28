@@ -76,14 +76,14 @@ class TransformersPipeline(BasePipeline):
         hf_device: str = "auto",
         hf_dtype: str = "auto",
         # Qwen3-ASR specific config (when asr_backend="qwen")
-        qwen_model_id: str = "Qwen/Qwen3-ASR-1.7B",
+        qwen_model_id: str = "Qwen/Qwen3-ASR-1.7B-hf",
         qwen_device: str = "auto",
         qwen_dtype: str = "auto",
         qwen_batch_size: int = 1,  # batch_size=1 for accuracy
         qwen_max_tokens: int = 4096,  # Supports ~10 min audio
         qwen_language: Optional[str] = None,  # None = auto-detect
         qwen_timestamps: str = "word",  # "word" or "none"
-        qwen_aligner: str = "Qwen/Qwen3-ForcedAligner-0.6B",
+        qwen_aligner: str = "Qwen/Qwen3-ForcedAligner-0.6B-hf",
         qwen_scene: str = "none",
         qwen_context: str = "",  # Context string for ASR accuracy
         qwen_context_file: Optional[str] = None,  # Path to context/glossary text file

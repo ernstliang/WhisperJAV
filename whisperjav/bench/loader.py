@@ -49,7 +49,7 @@ class TestResult:
     name: str  # User-provided label (e.g., "T1: vad_slicing")
     path: Path  # Path to test temp directory
     input_mode: str  # "assembly", "context_aware", "vad_slicing"
-    model_id: str  # e.g., "Qwen/Qwen3-ASR-1.7B"
+    model_id: str  # e.g., "Qwen/Qwen3-ASR-1.7B-hf"
     basename: str  # Media basename from _master.json
     final_srt: List[SubtitleEntry]
     scene_boundaries: List[SceneBoundary]

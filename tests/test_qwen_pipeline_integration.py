@@ -41,11 +41,11 @@ class TestPipelineBackendSelection:
                     output_dir=str(tmp_path / "output"),
                     temp_dir=str(tmp_path / "temp"),
                     asr_backend="qwen",
-                    qwen_model_id="Qwen/Qwen3-ASR-1.7B",
+                    qwen_model_id="Qwen/Qwen3-ASR-1.7B-hf",
                 )
 
                 assert pipeline.asr_backend == "qwen"
-                assert pipeline._asr_config["model_id"] == "Qwen/Qwen3-ASR-1.7B"
+                assert pipeline._asr_config["model_id"] == "Qwen/Qwen3-ASR-1.7B-hf"
 
     def test_qwen_mode_name(self, tmp_path):
         """Test that mode name is 'qwen' when using qwen backend."""
@@ -85,24 +85,24 @@ class TestPipelineBackendSelection:
                     output_dir=str(tmp_path / "output"),
                     temp_dir=str(tmp_path / "temp"),
                     asr_backend="qwen",
-                    qwen_model_id="Qwen/Qwen3-ASR-1.7B",
+                    qwen_model_id="Qwen/Qwen3-ASR-1.7B-hf",
                     qwen_device="cuda",
                     qwen_dtype="bfloat16",
                     qwen_batch_size=16,
                     qwen_max_tokens=128,
                     qwen_language="ja",
                     qwen_timestamps="word",
-                    qwen_aligner="Qwen/Qwen3-ForcedAligner-0.6B",
+                    qwen_aligner="Qwen/Qwen3-ForcedAligner-0.6B-hf",
                 )
 
-                assert pipeline.qwen_config["model_id"] == "Qwen/Qwen3-ASR-1.7B"
+                assert pipeline.qwen_config["model_id"] == "Qwen/Qwen3-ASR-1.7B-hf"
                 assert pipeline.qwen_config["device"] == "cuda"
                 assert pipeline.qwen_config["dtype"] == "bfloat16"
                 assert pipeline.qwen_config["batch_size"] == 16
                 assert pipeline.qwen_config["max_new_tokens"] == 128
                 assert pipeline.qwen_config["language"] == "ja"
                 assert pipeline.qwen_config["timestamps"] == "word"
-                assert pipeline.qwen_config["aligner_id"] == "Qwen/Qwen3-ForcedAligner-0.6B"
+                assert pipeline.qwen_config["aligner_id"] == "Qwen/Qwen3-ForcedAligner-0.6B-hf"
                 assert pipeline.qwen_config["use_aligner"] is True
 
     def test_qwen_asr_config_format(self, tmp_path):
