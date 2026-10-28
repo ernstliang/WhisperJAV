@@ -401,6 +401,14 @@ class WhisperSegSpeechSegmenter:
                 and "CUDAExecutionProvider" in available_providers
             )
             if use_gpu:
+                # onnxruntime-gpu does not find the CUDA / cuDNN DLLs on its own;
+                # importing torch loads the ones bundled in torch/lib, which the
+                # CUDA provider then reuses. Without this the session silently
+                # falls back to CPU (Error 126: cublasLt64_12.dll ... missing).
+                try:
+                    import torch  # noqa: F401
+                except ImportError:
+                    pass
                 providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
                 self._actual_device = "GPU (CUDA)"
                 opts.inter_op_num_threads = self.num_threads
@@ -428,6 +436,18 @@ class WhisperSegSpeechSegmenter:
             except Exception as e:
                 logger.error(f"Failed to create WhisperSeg ONNX session: {e}")
                 raise
+
+            # A CUDA provider that fails to load (missing or mismatched CUDA
+            # DLLs) is dropped by onnxruntime without raising; report what the
+            # session actually runs on.
+            if use_gpu and "CUDAExecutionProvider" not in self._session.get_providers():
+                self._actual_device = "CPU"
+                logger.warning(
+                    "WhisperSeg: CUDA provider could not be loaded, running on CPU. "
+                    "onnxruntime-gpu must match the CUDA major version of the "
+                    "installed PyTorch (onnxruntime-gpu 1.27+ needs CUDA 13; "
+                    "use <1.27 with CUDA 12 builds such as cu128)."
+                )
 
             self._input_name = self._session.get_inputs()[0].name
             self._output_names = [o.name for o in self._session.get_outputs()]

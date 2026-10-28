@@ -274,7 +274,9 @@ whisperseg = [
 # Do NOT install alongside whisperseg; the -gpu package replaces the CPU one.
 whisperseg-gpu = [
     "whisperjav[whisperseg]",
-    "onnxruntime-gpu>=1.16.0",
+    # <1.27: 1.27+ is built against CUDA 13, the default PyTorch index (cu128)
+    # ships CUDA 12 DLLs, and the CUDA provider then fails to load.
+    "onnxruntime-gpu>=1.16.0,<1.27",
 ]
 
 # Qwen3-ASR support (v1.8.3+)
