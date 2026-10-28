@@ -340,6 +340,20 @@ def main():
         action='store_true',
         help="Disable all progress output"
     )
+    output_group.add_argument(
+        '--include-original', '--bilingual',
+        dest='include_original',
+        action='store_true',
+        default=None,  # None = fall back to settings; True only if passed
+        help="Keep the original line in the output and put the translation on "
+             "a second line within the same subtitle cue (bilingual SRT)"
+    )
+    output_group.add_argument(
+        '--no-include-original',
+        dest='include_original',
+        action='store_false',
+        help="Translation only, discard the original line (overrides the saved setting)"
+    )
 
     # Ollama options
     ollama_group = parser.add_argument_group("Ollama Options")
@@ -531,6 +545,14 @@ def main():
     source_lang = merged.get('source', 'japanese')
     target_lang = merged.get('target_language', 'english')
 
+    # Bilingual output. The CLI flag defaults to None so that an explicit
+    # --include-original / --no-include-original always wins over the saved
+    # setting, while omitting both falls back to settings.json.
+    if getattr(args, 'include_original', None) is not None:
+        include_original = bool(args.include_original)
+    else:
+        include_original = bool(merged.get('include_original', False))
+
     # Resolve instruction file
     instruction_file = resolve_instruction_file_or_content(args, merged)
 
@@ -562,6 +584,7 @@ def main():
     print(f"  Tone: {effective_tone}", file=sys.stderr)
     print(f"  Scene threshold: {merged.get('scene_threshold', 60.0)}s", file=sys.stderr)
     print(f"  Max batch size: {merged.get('max_batch_size', 30)}", file=sys.stderr)
+    print(f"  Include original (bilingual): {include_original}", file=sys.stderr)
     if instruction_file:
         print(f"  Instructions: {instruction_file}", file=sys.stderr)
     print(f"  Provider options: {provider_options}", file=sys.stderr)
@@ -801,7 +824,8 @@ def main():
                         debug=args.debug,
                         provider_options=provider_options,
                         extra_context=extra_context if extra_context else None,
-                        emit_raw_output=not getattr(args, 'no_progress', False)
+                        emit_raw_output=not getattr(args, 'no_progress', False),
+                        include_original=include_original
                     )
                 finally:
                     # Stop server after last file
@@ -825,7 +849,8 @@ def main():
                     debug=args.debug,
                     provider_options=provider_options,
                     extra_context=extra_context if extra_context else None,
-                    emit_raw_output=not getattr(args, 'no_progress', False)
+                    emit_raw_output=not getattr(args, 'no_progress', False),
+                    include_original=include_original
                 )
             else:
                 result_path = translate_subtitle(
@@ -843,7 +868,8 @@ def main():
                     debug=args.debug,
                     provider_options=provider_options,
                     extra_context=extra_context if extra_context else None,
-                    emit_raw_output=not getattr(args, 'no_progress', False)
+                    emit_raw_output=not getattr(args, 'no_progress', False),
+                    include_original=include_original
                 )
 
             if result_path:

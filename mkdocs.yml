@@ -71,6 +71,7 @@ nav:
   - User Guide:
     - user-guide/index.md
     - GUI Walkthrough: guides/gui_user_guide.md
+    - Web UI: guides/web_ui_guide.md
     - Common Workflows: user-guide/workflows.md
     - CLI Reference: user-guide/cli-reference.md
     - Output Formats: user-guide/output-formats.md

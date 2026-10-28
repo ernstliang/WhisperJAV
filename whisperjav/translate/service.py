@@ -222,6 +222,7 @@ def translate_with_config(
     auto_confirm: bool = False,
     ollama_max_tokens: Optional[int] = None,
     ollama_num_ctx: Optional[int] = None,
+    include_original: Optional[bool] = None,
 ) -> Optional[Path]:
     """
     Translate subtitle file with full configuration resolution.
@@ -324,6 +325,10 @@ def translate_with_config(
     # Resolve processing options
     resolved_scene_threshold = scene_threshold if scene_threshold is not None else settings.get('scene_threshold', 60.0)
     resolved_max_batch_size = max_batch_size if max_batch_size is not None else settings.get('max_batch_size', 30)
+    resolved_include_original = (
+        include_original if include_original is not None
+        else bool(settings.get('include_original', False))
+    )
 
     # Build provider options
     provider_options = _build_provider_options(
@@ -455,6 +460,7 @@ def translate_with_config(
                 provider_options=provider_options,
                 extra_context=extra_context,
                 emit_raw_output=True,
+                include_original=resolved_include_original,
             )
 
         # For local provider WITHOUT custom endpoint: start llama.cpp server
@@ -536,7 +542,8 @@ def translate_with_config(
                     debug=debug,
                     provider_options=provider_options,
                     extra_context=extra_context,
-                    emit_raw_output=True
+                    emit_raw_output=True,
+                    include_original=resolved_include_original,
                 )
             finally:
                 # Always stop server when done
@@ -567,7 +574,8 @@ def translate_with_config(
                 debug=debug,
                 provider_options=provider_options,
                 extra_context=extra_context,
-                emit_raw_output=True  # Always emit progress to stderr (CLI parity)
+                emit_raw_output=True,  # Always emit progress to stderr (CLI parity)
+                include_original=resolved_include_original,
             )
 
         if result_path:

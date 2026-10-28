@@ -28,6 +28,8 @@ from whisperjav.utils.parameter_tracer import NullTracer
 from whisperjav.utils.crash_tracer import get_tracer
 from whisperjav.modules.segment_filters import SegmentFilterConfig, SegmentFilterHelper
 from whisperjav.modules.speech_segmentation import SpeechSegmenterFactory
+# Installs the find_alignment guard; see the module docstring for why.
+from whisperjav.modules import faster_whisper_patches  # noqa: F401
 
 # #424, owner 2026-10-02: "Both: source + guard"; the shortest speech piece that may reach
 # the recogniser is 0.1 s, and anything shorter joins the piece next to it.

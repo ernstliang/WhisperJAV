@@ -165,6 +165,8 @@ def validate_pyproject_sync(pyproject_path: Path = None) -> List[str]:
         # registered under ENHANCE) + whisperjav[huggingface]. No registry drift.
         "whisperseg",
         "whisperseg-gpu",  # adds onnxruntime-gpu (not registered; opt-in wheel)
+        # Local web UI — fastapi + uvicorn, both already registered under LLM.
+        "web",
     }
 
     actual_extras = set(actual.keys())

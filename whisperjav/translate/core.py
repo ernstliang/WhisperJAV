@@ -86,6 +86,76 @@ def clean_resumed_translation_tags(project) -> int:
     return changed
 
 
+from whisperjav.utils.logger import logger
+
+
+# =============================================================================
+# Target language naming
+# =============================================================================
+# PySubtrans substitutes ``target_language`` verbatim into the prompt (it fills
+# the ``[ to language]`` placeholder in the instruction files). Passing a bare
+# ``target_lang.capitalize()`` left two failure modes open, both observed in
+# practice:
+#
+#   1. "Chinese" does not say WHICH Chinese, so models freely emit Traditional
+#      characters when Simplified was wanted.
+#   2. Nothing in the prompt actually *required* output in the target language,
+#      so models sometimes passed lines through in English (or the source
+#      language) — especially on short lines and on batches that follow an
+#      English-heavy context summary.
+#
+# Naming the script explicitly (and echoing it in its own script, which is a
+# far stronger signal to the tokenizer than the English exonym) closes 1;
+# TARGET_LANGUAGE_CONSTRAINTS below closes 2.
+TARGET_LANGUAGE_NAMES = {
+    'english': 'English',
+    'chinese': 'Simplified Chinese (简体中文)',
+    'indonesian': 'Indonesian (Bahasa Indonesia)',
+    'portuguese': 'Portuguese (Português)',
+    'spanish': 'Spanish (Español)',
+    'french': 'French (Français)',
+}
+
+# Extra per-language directives appended to the prompt. Only needed where the
+# language name alone leaves an ambiguity a model can resolve the wrong way.
+TARGET_LANGUAGE_CONSTRAINTS = {
+    'chinese': (
+        "Write every line using Simplified Chinese characters (简体字). "
+        "Do NOT use Traditional Chinese characters (繁體字)."
+    ),
+}
+
+
+def resolve_target_language_name(target_lang: str) -> str:
+    """Map a CLI target-language key to an unambiguous display name.
+
+    Unknown keys fall back to the old capitalize() behaviour so that a custom
+    or newly added language still produces a sane prompt.
+    """
+    if not target_lang:
+        return 'English'
+    return TARGET_LANGUAGE_NAMES.get(target_lang.strip().lower(), target_lang.capitalize())
+
+
+def build_translation_prompt(source_lang: str, target_lang: str) -> str:
+    """Build the user prompt, pinning the output language explicitly."""
+    target_name = resolve_target_language_name(target_lang)
+    source_name = (source_lang or 'japanese').capitalize()
+
+    prompt = (
+        f"Translate these subtitles from {source_name} into {target_name}. "
+        f"Every line of your output must be written in {target_name} — "
+        f"never leave a line untranslated in {source_name}, and never "
+        f"substitute another language."
+    )
+
+    constraint = TARGET_LANGUAGE_CONSTRAINTS.get((target_lang or '').strip().lower())
+    if constraint:
+        prompt += " " + constraint
+
+    return prompt
+
+
 def cap_batch_size_for_context(max_batch_size: int, n_ctx: int) -> int:
     """Cap translation batch size to fit within the LLM context window.
 
@@ -483,7 +553,8 @@ def translate_subtitle(
     debug: bool = False,
     provider_options: dict = None,
     extra_context: str = None,
-    emit_raw_output: bool = True
+    emit_raw_output: bool = True,
+    include_original: bool = False
 ):
     """
     Translate subtitle file using PySubtrans.
@@ -520,9 +591,11 @@ def translate_subtitle(
         if 'api_base' in provider_config:
             print(f"[TRANSLATE]   API base: {provider_config['api_base']}", file=sys.stderr)
 
-        # Build prompt
-        prompt = (f"Translate these subtitles from {target_language_name(source_lang)} "
-                  f"into {target_language_name(target_lang)}.")
+        # Build prompt. Pins the output language explicitly — see
+        # build_translation_prompt() for why a bare target name is not enough.
+        resolved_target_name = resolve_target_language_name(target_lang)
+        prompt = build_translation_prompt(source_lang, target_lang)
+        print(f"[TRANSLATE]   Target language (resolved): {resolved_target_name}", file=sys.stderr)
         if extra_context:
             prompt += "\n" + extra_context
             print(f"[TRANSLATE]   Extra context: {extra_context[:200]}", file=sys.stderr)
@@ -560,13 +633,19 @@ def translate_subtitle(
             'provider': provider_config['pysubtrans_name'],
             'model': model,
             'api_key': api_key,
-            'target_language': target_lang.capitalize(),
+            'target_language': resolved_target_name,
             'prompt': prompt,
             'preprocess_subtitles': True,
             'scene_threshold': scene_threshold,
             'max_batch_size': _resolved_max_batch,
             'min_batch_size': _resolved_min_batch,
-            'postprocess_translation': True
+            'postprocess_translation': True,
+            # Bilingual output. PySubtrans' Subtitles.SaveTranslation() reads
+            # this and, when set, merges each original line with its
+            # translation as "original\ntranslation" in one cue. This option
+            # existed in whisperjav's own settings defaults but was never
+            # forwarded here, so it had no effect.
+            'include_original': include_original,
         }
 
         # Pass instruction file to PySubtrans so it can parse the
@@ -881,6 +960,58 @@ def translate_subtitle(
         # =========================================================================
         _batch_stats = {'total': 0, 'success': 0, 'no_matches': 0, 'errors': 0}
 
+        # ---------------------------------------------------------------------
+        # Progress logging
+        # ---------------------------------------------------------------------
+        # Until now the only live feedback was the raw token stream on stderr,
+        # which says nothing about how far along the job is. Batching always
+        # completes before TranslateSubtitles() starts iterating (it raises if
+        # subtitles.scenes is empty), and `preprocessed` fires with the full
+        # scene list, so the denominator is known up front.
+        _progress = {'total_batches': 0, 'done_batches': 0, 'total_scenes': 0}
+
+        def _progress_preprocessed_handler(sender, scenes=None, **kwargs):
+            """Capture the batch/scene totals once batching is done."""
+            scenes = scenes or kwargs.get('scenes') or []
+            try:
+                _progress['total_scenes'] = len(scenes)
+                _progress['total_batches'] = sum(
+                    len(getattr(scene, 'batches', []) or []) for scene in scenes
+                )
+            except Exception:
+                # Never let progress accounting break a translation run.
+                return
+
+            logger.info(
+                "Translation progress: starting - %d scenes / %d batches",
+                _progress['total_scenes'],
+                _progress['total_batches'],
+            )
+
+        def _progress_batch_handler(sender, **kwargs):
+            """Log completion of each batch as a percentage."""
+            _progress['done_batches'] += 1
+            done = _progress['done_batches']
+            total = _progress['total_batches']
+
+            if total > 0:
+                pct = min(100.0, done / total * 100.0)
+                logger.info("Translation progress: batch %d/%d (%.0f%%)", done, total, pct)
+            else:
+                # preprocessed never fired (or reported nothing) — still emit a
+                # monotonic counter rather than going silent.
+                logger.info("Translation progress: %d batches done", done)
+
+        def _progress_scene_handler(sender, scene=None, **kwargs):
+            """Log scene-level completion, which is the coarser milestone."""
+            scene = scene if scene is not None else kwargs.get('scene')
+            number = getattr(scene, 'number', None)
+            total_scenes = _progress['total_scenes']
+            if number is not None and total_scenes:
+                logger.info("Translation progress: scene %s/%s complete", number, total_scenes)
+            elif number is not None:
+                logger.info("Translation progress: scene %s complete", number)
+
         def _diagnostic_batch_handler(sender, **kwargs):
             """Track batch translation results for diagnostic summary.
 
@@ -985,6 +1116,16 @@ def translate_subtitle(
                 translator.events.warning.connect(_diagnostic_warning_handler)
             if hasattr(translator.events, 'error'):
                 translator.events.error.connect(_diagnostic_error_handler)
+
+            # Progress handlers. Kept separate from the diagnostic handlers so
+            # that a failure in progress accounting can never affect the
+            # success/failure bookkeeping below.
+            if hasattr(translator.events, 'preprocessed'):
+                translator.events.preprocessed.connect(_progress_preprocessed_handler)
+            if hasattr(translator.events, 'batch_translated'):
+                translator.events.batch_translated.connect(_progress_batch_handler)
+            if hasattr(translator.events, 'scene_translated'):
+                translator.events.scene_translated.connect(_progress_scene_handler)
 
         # =========================================================================
         # DIAGNOSTIC: Translation Start

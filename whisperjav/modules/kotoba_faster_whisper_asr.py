@@ -25,6 +25,9 @@ from whisperjav.utils.pyav_compat import ensure_av_open_compat
 ensure_av_open_compat()  # PyAV 19 dropped an argument faster-whisper passes
 from whisperjav.utils.logger import logger
 from whisperjav.utils.device_detector import get_best_device
+# Installs the find_alignment guard; this module can enable word_timestamps
+# (see self.word_timestamps below) and is exposed to the same native crash.
+from whisperjav.modules import faster_whisper_patches  # noqa: F401
 
 
 class KotobaFasterWhisperASR:

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-flow="transcribe">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WhisperJAV Web</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>WhisperJAV</h1>
+  <span id="statePill" class="pill idle">空闲</span>
+  <span class="spacer"></span>
+  <span id="versionLabel" class="muted"></span>
+</header>
+
+<main>
+
+  <section class="card">
+    <h2>任务类型</h2>
+    <div class="radios" id="flowRadios">
+      <label><input type="radio" name="flow" value="transcribe" checked> 视频转写出 SRT</label>
+      <label><input type="radio" name="flow" value="translate"> 已有 SRT 直接翻译</label>
+      <label><input type="radio" name="flow" value="transcribe_translate"> 转写 + 自动翻译</label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>输入文件</h2>
+    <div class="row">
+      <button type="button" id="btnBrowse">浏览…</button>
+      <button type="button" id="btnClearInputs" class="ghost">清空</button>
+      <span id="inputSummary" class="muted">未选择</span>
+    </div>
+    <ul id="inputList" class="chips"></ul>
+  </section>
+
+  <fieldset class="card" id="fsTranscribe">
+    <h2>转写设置</h2>
+    <div class="grid">
+      <label>模式 <select id="t_mode"></select></label>
+      <label>灵敏度 <select id="t_sensitivity"></select></label>
+      <label>音频语言 <select id="t_language"></select></label>
+      <label>字幕语言 <select id="t_subs_language"></select></label>
+      <label>输出格式 <select id="t_output_format"></select></label>
+      <label>日志级别 <select id="t_log_level"></select></label>
+      <label class="wide">模型覆盖（可留空，支持本地 CT2 目录）
+        <input type="text" id="t_model" placeholder="large-v3 或 D:\models\faster-whisper-large-v3-ja">
+      </label>
+      <label class="wide">输出目录
+        <span class="inline">
+          <input type="text" id="t_output_dir" placeholder="留空 = 与源文件同目录">
+          <button type="button" class="ghost" data-browse-dir="t_output_dir">…</button>
+        </span>
+      </label>
+      <label class="wide">临时目录（可选）
+        <input type="text" id="t_temp_dir" placeholder="留空使用默认">
+      </label>
+    </div>
+    <div class="checks">
+      <label><input type="checkbox" id="t_keep_temp"> 保留临时文件</label>
+      <label><input type="checkbox" id="t_skip_existing"> 跳过已有结果</label>
+      <label><input type="checkbox" id="t_accept_cpu_mode"> 允许 CPU 模式</label>
+    </div>
+  </fieldset>
+
+  <fieldset class="card" id="fsTranslate">
+    <h2>翻译设置</h2>
+    <div class="grid">
+      <label>Provider <select id="x_provider"></select></label>
+      <label>目标语言 <select id="x_target"></select></label>
+      <label>源语言 <select id="x_source"></select></label>
+      <label>语气 <select id="x_tone"></select></label>
+      <label class="wide">模型
+        <span class="inline">
+          <input type="text" id="x_model" list="ollamaModels" placeholder="留空使用 provider 默认">
+          <button type="button" class="ghost" id="btnOllamaRefresh" title="拉取本地 Ollama 模型列表">↻</button>
+        </span>
+        <datalist id="ollamaModels"></datalist>
+      </label>
+      <label class="wide">API Key <input type="password" id="x_api_key" placeholder="留空则读环境变量"></label>
+      <label class="wide">自定义 Endpoint <input type="text" id="x_endpoint" placeholder="OpenAI 兼容 API 地址"></label>
+      <label>Ollama URL <input type="text" id="x_ollama_url" placeholder="http://localhost:11434"></label>
+      <label>Ollama num_ctx <input type="number" id="x_ollama_num_ctx" min="512" step="512"></label>
+      <label>场景间隔（秒） <input type="number" id="x_scene_threshold" step="1" min="1"></label>
+      <label>每批行数 <input type="number" id="x_max_batch_size" step="1" min="1"></label>
+    </div>
+    <div class="checks">
+      <label><input type="checkbox" id="x_include_original"> 双语输出（保留原文，译文换行）</label>
+    </div>
+    <details>
+      <summary>影片上下文（可选，能明显改善称呼与代词）</summary>
+      <div class="grid">
+        <label class="wide">片名 <input type="text" id="x_movie_title"></label>
+        <label class="wide">演员 <input type="text" id="x_actress"></label>
+        <label class="wide">剧情摘要 <textarea id="x_movie_plot" rows="3"></textarea></label>
+      </div>
+    </details>
+    <p class="hint" id="keyHint"></p>
+  </fieldset>
+
+  <section class="card">
+    <div class="row">
+      <button type="button" id="btnStart" class="primary">开始</button>
+      <button type="button" id="btnCancel" class="danger" disabled>取消</button>
+      <span id="submitError" class="error"></span>
+    </div>
+  </section>
+
+  <section class="card" id="progressCard" hidden>
+    <h2>进度 <span id="phaseBadge" class="badge"></span></h2>
+    <div class="bar"><div id="overallBar" class="fill"></div></div>
+    <div class="row muted">
+      <span id="overallPct">0%</span>
+      <span id="fileLine"></span>
+      <span id="elapsedLine"></span>
+    </div>
+    <div id="stepLine" class="steplabel"></div>
+    <div class="bar thin"><div id="taskBar" class="fill alt"></div></div>
+    <div id="taskLine" class="muted small"></div>
+    <div id="lastMessage" class="muted small mono"></div>
+    <ul id="outputList" class="outputs"></ul>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <h2>日志</h2>
+      <span class="spacer"></span>
+      <label class="small"><input type="checkbox" id="autoscroll" checked> 自动滚动</label>
+      <button type="button" class="ghost" id="btnCopyLog">复制</button>
+      <button type="button" class="ghost" id="btnClearLog">清屏</button>
+    </div>
+    <pre id="log" class="console"></pre>
+  </section>
+
+  <footer class="muted small">
+    任务历史仅保存在内存中，服务重启后清空。
+  </footer>
+
+</main>
+
+<dialog id="browser">
+  <div class="dlg-head">
+    <select id="driveSelect"></select>
+    <button type="button" id="btnUp" class="ghost">↑ 上级</button>
+    <input type="text" id="pathInput" placeholder="直接输入路径后回车">
+    <button type="button" id="btnCloseDlg" class="ghost">关闭</button>
+  </div>
+  <div class="dlg-shortcuts" id="shortcuts"></div>
+  <div class="dlg-body">
+    <ul id="entries" class="entries"></ul>
+  </div>
+  <div class="dlg-foot">
+    <span id="dlgStatus" class="muted small"></span>
+    <span class="spacer"></span>
+    <button type="button" id="btnAddFolder" class="ghost">添加整个文件夹</button>
+    <button type="button" id="btnAddSelected" class="primary">添加所选</button>
+  </div>
+</dialog>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

@@ -228,7 +228,61 @@ class UnifiedProgressManager:
         self._message_buffer = []
         self._last_message_flush = time.time()
         self._message_flush_interval = 2.0
-    
+
+        # ------------------------------------------------------------------
+        # Logged progress
+        # ------------------------------------------------------------------
+        # The ConsoleProgressHandler renderers for STANDARD/DETAILED are
+        # deliberately no-ops, so percentage state was tracked but never
+        # surfaced anywhere. These emit it through the logger instead, which
+        # means it lands in the log file and survives redirected stdout.
+        #
+        # Throttled by percentage rather than by time: a long ASR run should
+        # produce a bounded number of lines regardless of how many scenes it
+        # has (10 scenes and 900 scenes both yield ~10 progress lines).
+        self._progress_log_interval_pct = 10.0
+        self._last_logged_pct: Dict[str, float] = {}
+
+    @staticmethod
+    def _format_duration(seconds: float) -> str:
+        """Format a duration as M:SS or H:MM:SS."""
+        if seconds is None or seconds < 0 or seconds != seconds:  # NaN-safe
+            return "--:--"
+        seconds = int(seconds)
+        hours, remainder = divmod(seconds, 3600)
+        minutes, secs = divmod(remainder, 60)
+        if hours:
+            return f"{hours}:{minutes:02d}:{secs:02d}"
+        return f"{minutes}:{secs:02d}"
+
+    def _should_log_progress(self, context_id: str, context: ProgressContext) -> bool:
+        """Decide whether this update crosses a logging milestone.
+
+        Must be called with self._lock held.
+        """
+        if not context.total:
+            return False
+
+        pct = context.progress_percent
+        last = self._last_logged_pct.get(context_id)
+
+        # Always log the final item so the sequence ends on 100%.
+        is_final = context.current >= context.total
+
+        if last is None:
+            self._last_logged_pct[context_id] = pct
+            return True
+
+        if is_final and last < 100.0:
+            self._last_logged_pct[context_id] = pct
+            return True
+
+        if pct - last >= self._progress_log_interval_pct:
+            self._last_logged_pct[context_id] = pct
+            return True
+
+        return False
+
     def start_file_processing(self, filename: str, file_num: int, total_files: int) -> str:
         """Begin processing a file - returns context ID."""
         context_id = f"file_{file_num}"
@@ -274,11 +328,14 @@ class UnifiedProgressManager:
             )
             self.contexts[context_id] = step_context
             self.active_step_context_id = context_id
-            
+
             # Add to parent's children
             if step_context not in parent_context.children:
                 parent_context.children.append(step_context)
-                
+
+        if self.verbosity != VerbosityLevel.QUIET:
+            logger.info(f"Step {step_num}/{total_steps}: {step_name}")
+
         self._schedule_update()
         return context_id
     
@@ -303,15 +360,20 @@ class UnifiedProgressManager:
             )
             self.contexts[context_id] = task_context
             self.active_task_context_id = context_id
-            
+            # Fresh task: reset the milestone tracker for this context id.
+            self._last_logged_pct.pop(context_id, None)
+
             # Update parent step context total if not set
             if parent_context and parent_context.level == 'step' and not parent_context.total:
                 parent_context.total = total_items
-                
+
             # Add to parent's children
             if task_context not in parent_context.children:
                 parent_context.children.append(task_context)
-                
+
+        if self.verbosity != VerbosityLevel.QUIET:
+            logger.info(f"Progress: {task_name} - {total_items} items queued")
+
         self._schedule_update()
         return context_id
     
@@ -319,17 +381,38 @@ class UnifiedProgressManager:
         """Update task progress with smart batching and rate limiting."""
         if not context_id or context_id not in self.contexts:
             return
-            
+
+        log_line = None
+
         with self._lock:
             context = self.contexts[context_id]
             context.current = min(context.current + increment, context.total or context.current + increment)
-            
+
             if details:
                 context.details.update(details)
-                
+
             # Propagate progress up the hierarchy
             self._propagate_progress(context)
-            
+
+            # Build the log line inside the lock (context is mutable), emit
+            # outside it so logging I/O never serialises worker threads.
+            # QUIET is documented as "file progress only", so task-level
+            # progress stays off there.
+            if self.verbosity != VerbosityLevel.QUIET and self._should_log_progress(context_id, context):
+                elapsed = context.elapsed_time
+                pct = context.progress_percent
+                eta = ""
+                if context.current > 0 and context.current < context.total:
+                    remaining = elapsed / context.current * (context.total - context.current)
+                    eta = f", ETA {self._format_duration(remaining)}"
+                log_line = (
+                    f"Progress: {context.name} {context.current}/{context.total} "
+                    f"({pct:.0f}%) elapsed {self._format_duration(elapsed)}{eta}"
+                )
+
+        if log_line:
+            logger.info(log_line)
+
         # Rate-limited updates to prevent spam
         if time.time() - self.last_update > self.update_interval:
             self._schedule_update()

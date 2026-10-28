@@ -716,6 +716,14 @@ def parse_arguments():
              "original is explicit), pornify (default: standard)"
     )
     translation_group.add_argument(
+        "--translate-include-original", "--translate-bilingual",
+        dest="translate_include_original",
+        action="store_true",
+        default=None,  # None = defer to translate settings.json
+        help="Keep the original line and put the translation on a second line "
+             "in the same subtitle cue (bilingual output)"
+    )
+    translation_group.add_argument(
         "--translate-api-key",
         help="Translation API key (overrides environment variable)"
     )
@@ -1845,6 +1853,7 @@ def process_files_sync(media_files: List[Dict], args: argparse.Namespace, resolv
                             auto_confirm=getattr(args, 'yes', False),
                             ollama_max_tokens=getattr(args, 'ollama_max_tokens', None),
                             ollama_num_ctx=getattr(args, 'ollama_num_ctx', None),
+                            include_original=getattr(args, 'translate_include_original', None),
                         )
 
                         if translated_path:
@@ -2170,7 +2179,8 @@ def process_files_async(media_files: List[Dict], args: argparse.Namespace, resol
                                     debug=getattr(args, 'debug', False),
                                     extra_context=build_translation_context(args),
                                     n_gpu_layers=getattr(args, 'translate_gpu_layers', -1),
-                                    endpoint=getattr(args, 'translate_endpoint', None)
+                                    endpoint=getattr(args, 'translate_endpoint', None),
+                                    include_original=getattr(args, 'translate_include_original', None)
                                 )
 
                                 _oc = _outcome_by_task.get(task.task_id)
@@ -3636,7 +3646,8 @@ def main():
                             debug=getattr(args, 'debug', False),
                             extra_context=extra_context,
                             n_gpu_layers=getattr(args, 'translate_gpu_layers', -1),
-                            endpoint=getattr(args, 'translate_endpoint', None)
+                            endpoint=getattr(args, 'translate_endpoint', None),
+                            include_original=getattr(args, 'translate_include_original', None)
                         )
 
                         if translated_path:
