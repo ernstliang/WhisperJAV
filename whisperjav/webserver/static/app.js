@@ -43,8 +43,8 @@ const S = {
 
 const STORE_KEY = 'whisperjav-web-form';
 const TRANSCRIBE_FIELDS = ['t_mode', 't_sensitivity', 't_language', 't_subs_language',
-  't_output_format', 't_log_level', 't_model', 't_output_dir', 't_temp_dir',
-  't_keep_temp', 't_skip_existing', 't_accept_cpu_mode'];
+  't_output_format', 't_log_level', 't_model', 't_qwen_timestamp_mode', 't_qwen_aligner',
+  't_output_dir', 't_temp_dir', 't_keep_temp', 't_skip_existing', 't_accept_cpu_mode'];
 const TRANSLATE_FIELDS = ['x_provider', 'x_target', 'x_source', 'x_tone', 'x_model',
   'x_endpoint', 'x_ollama_url', 'x_ollama_num_ctx', 'x_scene_threshold',
   'x_max_batch_size', 'x_include_original', 'x_movie_title', 'x_actress', 'x_movie_plot'];
@@ -56,6 +56,7 @@ async function init() {
   fillSelects();
   restoreForm();
   applyFlow(S.flow);
+  applyMode();
   bind();
 
   const { jobs } = await api.get('/api/jobs');
@@ -82,6 +83,7 @@ function fillSelects() {
   fillOptions($('t_subs_language'), t.subs_language, 'native');
   fillOptions($('t_output_format'), t.output_format, 'srt');
   fillOptions($('t_log_level'), t.log_level, 'INFO');
+  fillOptions($('t_qwen_timestamp_mode'), t.qwen_timestamp_mode, 'vad_only');
   $('t_output_dir').placeholder = '留空 = 与源文件同目录；常用：' + S.config.defaults.output_dir;
 
   fillOptions($('x_provider'), x.providers.map((p) => p.id), saved.provider || 'ollama');
@@ -134,6 +136,11 @@ function applyFlow(flow) {
   }
 }
 
+// Mode-driven visibility (the Qwen-only fields), same CSS approach as flow.
+function applyMode() {
+  document.documentElement.dataset.mode = $('t_mode').value;
+}
+
 function persistForm() {
   const data = { flow: S.flow, inputs: S.inputs };
   for (const id of [...TRANSCRIBE_FIELDS, ...TRANSLATE_FIELDS]) {
@@ -169,6 +176,8 @@ function readPayload() {
     transcribe: {
       mode: $('t_mode').value,
       model: str('t_model'),
+      qwen_timestamp_mode: $('t_qwen_timestamp_mode').value,
+      qwen_aligner: str('t_qwen_aligner'),
       language: $('t_language').value,
       subs_language: $('t_subs_language').value,
       sensitivity: $('t_sensitivity').value,
@@ -514,6 +523,7 @@ function bind() {
     $('browser').close();
   };
 
+  $('t_mode').addEventListener('change', applyMode);
   $('btnStart').onclick = onStart;
   $('btnCancel').onclick = onCancel;
   $('x_provider').onchange = () => { updateKeyHint(); persistForm(); };

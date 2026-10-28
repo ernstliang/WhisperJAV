@@ -68,6 +68,40 @@ def test_transcribe_optional_flags():
     assert args[args.index("--model") + 1] == r"D:\models\ct2"
 
 
+@pytest.mark.parametrize("mode,flag", [
+    ("qwen", "--qwen-model-id"),
+    ("transformers", "--hf-model-id"),
+])
+def test_model_override_uses_the_mode_specific_flag(mode, flag):
+    opts = dict(TRANSCRIBE, mode=mode, model=r"D:\models\Qwen3-ASR-1.7B-JA-hf")
+    args = tail(argbuild.build_command("transcribe", opts, {}, ["a.mp4"])[0])
+    assert args[args.index(flag) + 1] == r"D:\models\Qwen3-ASR-1.7B-JA-hf"
+    assert "--model" not in args
+
+
+def test_qwen_aligner_options():
+    opts = dict(TRANSCRIBE, mode="qwen", qwen_timestamp_mode="aligner_interpolation",
+                qwen_aligner=r"D:\models\Qwen3-ForcedAligner-0.6B-hf")
+    args = tail(argbuild.build_command("transcribe", opts, {}, ["a.mp4"])[0])
+    assert args[args.index("--qwen-timestamp-mode") + 1] == "aligner_interpolation"
+    assert args[args.index("--qwen-aligner") + 1] == r"D:\models\Qwen3-ForcedAligner-0.6B-hf"
+
+
+def test_qwen_vad_only_is_left_to_the_cli_default():
+    opts = dict(TRANSCRIBE, mode="qwen", qwen_timestamp_mode="vad_only")
+    args = tail(argbuild.build_command("transcribe", opts, {}, ["a.mp4"])[0])
+    assert "--qwen-timestamp-mode" not in args
+    assert "--qwen-aligner" not in args
+
+
+def test_qwen_options_ignored_for_other_modes():
+    opts = dict(TRANSCRIBE, mode="balanced", qwen_timestamp_mode="aligner_only",
+                qwen_aligner=r"D:\models\aligner")
+    args = tail(argbuild.build_command("transcribe", opts, {}, ["a.mp4"])[0])
+    assert "--qwen-timestamp-mode" not in args
+    assert "--qwen-aligner" not in args
+
+
 def test_translate_argv_uses_dash_i():
     argv, _ = argbuild.build_command(
         "translate", {}, dict(TRANSLATE, include_original=True), [r"D:\a.srt"])

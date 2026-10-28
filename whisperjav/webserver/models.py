@@ -8,6 +8,9 @@ from pydantic import BaseModel, Field
 class TranscribeOptions(BaseModel):
     mode: str = "balanced"
     model: Optional[str] = None
+    # Qwen only (ignored for other modes); vad_only = CLI default, no aligner
+    qwen_timestamp_mode: Optional[str] = None
+    qwen_aligner: Optional[str] = None
     language: str = "japanese"
     subs_language: str = "native"
     sensitivity: str = "balanced"

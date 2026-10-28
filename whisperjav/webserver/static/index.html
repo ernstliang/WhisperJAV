@@ -45,14 +45,20 @@
       <label>字幕语言 <select id="t_subs_language"></select></label>
       <label>输出格式 <select id="t_output_format"></select></label>
       <label>日志级别 <select id="t_log_level"></select></label>
-      <label class="wide">模型覆盖（可留空，支持本地 CT2 目录）
-        <input type="text" id="t_model" placeholder="large-v3 或 D:\models\faster-whisper-large-v3-ja">
+      <label class="wide">模型覆盖（可留空，支持本地模型目录；qwen 模式填 Qwen3-ASR -hf 模型）
+        <input type="text" id="t_model" placeholder="large-v3 / D:\models\faster-whisper-large-v3-ja / D:\models\Qwen3-ASR-1.7B-hf">
       </label>
       <label class="wide">输出目录
         <span class="inline">
           <input type="text" id="t_output_dir" placeholder="留空 = 与源文件同目录">
           <button type="button" class="ghost" data-browse-dir="t_output_dir">…</button>
         </span>
+      </label>
+      <label class="qwen-only">时间戳模式（Qwen）
+        <select id="t_qwen_timestamp_mode"></select>
+      </label>
+      <label class="wide qwen-only">对齐器模型（Qwen，可留空，支持本地 -hf 目录；vad_only 模式下不加载）
+        <input type="text" id="t_qwen_aligner" placeholder="Qwen/Qwen3-ForcedAligner-0.6B-hf 或 D:\models\Qwen3-ForcedAligner-0.6B-hf">
       </label>
       <label class="wide">临时目录（可选）
         <input type="text" id="t_temp_dir" placeholder="留空使用默认">

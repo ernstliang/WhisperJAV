@@ -24,6 +24,11 @@ _SECRET_FLAGS = {"--api-key", "--translate-api-key"}
 # appear at exit. -u fixes that.
 _PY_PREFIX = [sys.executable, "-X", "utf8", "-u", "-m"]
 
+_MODEL_FLAG_BY_MODE = {
+    "qwen": "--qwen-model-id",
+    "transformers": "--hf-model-id",
+}
+
 
 def _s(value: Any) -> str:
     return "" if value is None else str(value).strip()
@@ -60,7 +65,16 @@ def build_transcribe_argv(opts: Dict[str, Any], inputs: List[str]) -> List[str]:
     _flag(args, "--language", opts.get("language") or "japanese")
     _flag(args, "--subs-language", opts.get("subs_language") or "native")
     _flag(args, "--sensitivity", opts.get("sensitivity") or "balanced")
-    _flag(args, "--model", opts.get("model"))
+    # --model only overrides the Whisper-family pipelines; qwen and
+    # transformers read their own model flags and ignore --model.
+    _flag(args, _MODEL_FLAG_BY_MODE.get(mode, "--model"), opts.get("model"))
+    if mode == "qwen":
+        # vad_only is the CLI default; leave it implicit so the CLI keeps
+        # deciding per generator (main.py checks sys.argv for this flag).
+        timestamp_mode = _s(opts.get("qwen_timestamp_mode"))
+        if timestamp_mode and timestamp_mode != "vad_only":
+            args += ["--qwen-timestamp-mode", timestamp_mode]
+        _flag(args, "--qwen-aligner", opts.get("qwen_aligner"))
 
     output_dir = _s(opts.get("output_dir")) or OUTPUT_DIR_SOURCE_SENTINEL
     args += ["--output-dir", output_dir]

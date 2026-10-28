@@ -91,6 +91,8 @@ html[data-flow="transcribe"] #fsTranscribe,
 html[data-flow="transcribe_translate"] #fsTranscribe,
 html[data-flow="translate"] #fsTranslate,
 html[data-flow="transcribe_translate"] #fsTranslate { display: block; }
+.grid label.qwen-only { display: none; }
+html[data-mode="qwen"] .grid label.qwen-only { display: flex; }
 
 .chips { list-style: none; padding: 0; margin: 10px 0 0;
          display: flex; flex-wrap: wrap; gap: 6px; }

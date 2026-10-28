@@ -105,6 +105,9 @@ def build_config() -> Dict[str, Any]:
             "subs_language": ["native", "direct-to-english"],
             "output_format": ["srt", "vtt", "both"],
             "log_level": ["DEBUG", "INFO", "WARNING", "ERROR"],
+            # Mirrors --qwen-timestamp-mode; vad_only (first) is the CLI default
+            "qwen_timestamp_mode": ["vad_only", "aligner_interpolation",
+                                    "aligner_vad_fallback", "aligner_only"],
         },
         "translate": _translate_choices(),
         "saved": _saved_translate_settings(),
